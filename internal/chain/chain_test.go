@@ -26,3 +26,18 @@ func TestParseAndFormat(t *testing.T) {
 		t.Fatal("asset case")
 	}
 }
+
+func TestOptionalNetworksAreOptIn(t *testing.T) {
+	if _, ok := Builtin().Find("eip155:42161"); ok {
+		t.Fatal("an unproven network is built in")
+	}
+	r, err := WithExtra(Optional)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, id := range []string{"eip155:42161", "eip155:10", "eip155:1"} {
+		if _, ok := r.Find(id); !ok {
+			t.Fatal(id)
+		}
+	}
+}

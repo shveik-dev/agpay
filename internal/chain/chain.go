@@ -21,6 +21,17 @@ type Net struct {
 	Test     bool     `json:"testnet,omitempty"`
 }
 
+// Optional lists EVM networks that use the same code path but have not been paid on live, so they
+// are not built in: add them with `agpay policy set --add-network-file` (an admin-signed change).
+var Optional = []Net{
+	{CAIP: "eip155:42161", Name: "Arbitrum One", V1: "arbitrum", Kind: "evm", ChainID: 42161, USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", Decimals: 6, Gas: "ETH",
+		RPC: []string{"https://arb1.arbitrum.io/rpc"}},
+	{CAIP: "eip155:10", Name: "Optimism", V1: "optimism", Kind: "evm", ChainID: 10, USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", Decimals: 6, Gas: "ETH",
+		RPC: []string{"https://mainnet.optimism.io"}},
+	{CAIP: "eip155:1", Name: "Ethereum", V1: "ethereum", Kind: "evm", ChainID: 1, USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", Decimals: 6, Gas: "ETH",
+		RPC: []string{"https://ethereum-rpc.publicnode.com"}},
+}
+
 var builtin = []Net{
 	{CAIP: "eip155:8453", Name: "Base", V1: "base", Kind: "evm", ChainID: 8453, USDC: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", Decimals: 6, Gas: "ETH",
 		RPC: []string{"https://mainnet.base.org", "https://base-rpc.publicnode.com"}},
@@ -28,12 +39,6 @@ var builtin = []Net{
 		RPC: []string{"https://sepolia.base.org"}},
 	{CAIP: "eip155:137", Name: "Polygon", V1: "polygon", Kind: "evm", ChainID: 137, USDC: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", Decimals: 6, Gas: "POL",
 		RPC: []string{"https://polygon-rpc.com", "https://polygon-bor-rpc.publicnode.com"}},
-	{CAIP: "eip155:42161", Name: "Arbitrum One", V1: "arbitrum", Kind: "evm", ChainID: 42161, USDC: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", Decimals: 6, Gas: "ETH",
-		RPC: []string{"https://arb1.arbitrum.io/rpc"}},
-	{CAIP: "eip155:10", Name: "Optimism", V1: "optimism", Kind: "evm", ChainID: 10, USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", Decimals: 6, Gas: "ETH",
-		RPC: []string{"https://mainnet.optimism.io"}},
-	{CAIP: "eip155:1", Name: "Ethereum", V1: "ethereum", Kind: "evm", ChainID: 1, USDC: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", Decimals: 6, Gas: "ETH",
-		RPC: []string{"https://ethereum-rpc.publicnode.com"}},
 	{CAIP: "solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp", Name: "Solana", V1: "solana", Kind: "svm", USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v", Decimals: 6, Gas: "SOL",
 		RPC: []string{"https://api.mainnet-beta.solana.com"}},
 	{CAIP: "solana:EtWTRABZaYq6iMfeYKouRu166VU2xqa1", Name: "Solana Devnet", V1: "solana-devnet", Kind: "svm", USDC: "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU", Decimals: 6, Gas: "SOL", Test: true,

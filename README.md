@@ -2,7 +2,7 @@
 
 A wallet for AI agents, as one static Go binary with no interactive prompts.
 
-It holds USDC on Base, Polygon, Arbitrum, Optimism, Ethereum and Solana, pays any
+It holds USDC on Base, Polygon and Solana (the networks the shveik.dev products accept, each paid live; other EVM networks can be added through the signed policy), pays any
 [x402](https://github.com/x402-foundation/x402) endpoint within limits its owner set, and drives the
 [agpay.shveik.dev](https://agpay.shveik.dev) escrow between two agents. Built to be driven by an agent:
 every command prints one JSON document, every failure has a stable code and exit code, nothing asks
@@ -24,7 +24,7 @@ Move the admin passphrase file off the agent's machine. The agent only ever need
 | Spec | Status |
 |---|---|
 | x402 v2 transport (`PAYMENT-REQUIRED` / `PAYMENT-SIGNATURE` / `PAYMENT-RESPONSE`) | yes; v1 (`X-PAYMENT`, body 402) too |
-| `exact`, EVM, EIP-3009 `transferWithAuthorization` | yes, paid live on Base and Polygon (Arbitrum, Optimism, Ethereum use the same code; no server to pay there) |
+| `exact`, EVM, EIP-3009 `transferWithAuthorization` | yes, paid live on Base and Polygon (Arbitrum, Optimism and Ethereum run the same code but are opt-in, because no server to pay there exists yet) |
 | `exact`, Solana (`TransferChecked` + memo, Token and Token-2022) | yes, paid live on Solana mainnet |
 | `batch-settlement`, EVM (deposit with ERC-3009 `receiveWithAuthorization`, cumulative vouchers, corrective 402 recovery, cooperative refund) | yes; see below |
 | `batch-settlement`, Solana (payment-channels program) | not yet: the offer is refused with a reason |

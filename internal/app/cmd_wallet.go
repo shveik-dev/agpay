@@ -115,7 +115,7 @@ func init() {
 					return nil, walletErr("no_wallet", "run `agpay init` first", "there is no wallet in %s", c.Home)
 				}
 				return map[string]any{"evm": e.Hex(), "solana": s.String(),
-					"note": "the one EVM address works on every EVM network (Base, Polygon, Arbitrum, Optimism, Ethereum)"}, nil
+					"note": "the one EVM address works on every EVM network, including ones added to the policy later"}, nil
 			}
 		}})
 
