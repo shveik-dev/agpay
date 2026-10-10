@@ -28,6 +28,7 @@ func (m *multi) Set(v string) error { *m = append(*m, v); return nil }
 
 type reqFlags struct {
 	method, data, network, scheme, max, key, out string
+	depositMul                                   int
 	headers                                      multi
 	dry                                          bool
 	timeout                                      time.Duration
@@ -44,12 +45,13 @@ func (r *reqFlags) bind(fs *flag.FlagSet, withPay bool) {
 		fs.StringVar(&r.max, "max", "", "refuse to pay more than this many dollars for this call, e.g. 0.05")
 		fs.StringVar(&r.key, "idempotency-key", "", "a retry with the same key never pays twice")
 		fs.StringVar(&r.out, "out", "", "write the response body to this file instead of inlining it")
+		fs.IntVar(&r.depositMul, "deposit-multiplier", 0, "batch-settlement: deposit this many times the per-request amount (3 or more; default 5)")
 		fs.BoolVar(&r.dry, "dry-run", false, "show what would be paid and why, without signing or spending")
 	}
 }
 
 func (r *reqFlags) build(c *ctx, url string) (x402pay.Request, error) {
-	req := x402pay.Request{Method: r.method, URL: url, Header: http.Header{}, Network: r.network, Scheme: r.scheme, DryRun: r.dry, Key: r.key}
+	req := x402pay.Request{Method: r.method, URL: url, Header: http.Header{}, Network: r.network, Scheme: r.scheme, DryRun: r.dry, Key: r.key, DepositMultiplier: r.depositMul}
 	if r.scheme != "" && r.scheme != "exact" && r.scheme != "batch-settlement" {
 		return req, usage("bad_flags", "--scheme is exact or batch-settlement")
 	}

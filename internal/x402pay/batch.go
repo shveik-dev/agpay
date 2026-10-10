@@ -274,8 +274,11 @@ func RefundPayload(k Keys, o Offer, cfg ChannelConfig, charged, amount *big.Int)
 // DepositTarget picks the deposit: the server's announced minDeposit when valid (a positive integer
 // not below the request amount), else DepositMultiplier x the request, never below what the next
 // voucher needs.
-func DepositTarget(o Offer, needed *big.Int) *big.Int {
-	target := new(big.Int).Mul(big.NewInt(DepositMultiplier), o.Amount)
+func DepositTarget(o Offer, needed *big.Int, multiplier int) *big.Int {
+	if multiplier < 3 {
+		multiplier = DepositMultiplier // the spec allows no less than 3; 5 is the default
+	}
+	target := new(big.Int).Mul(big.NewInt(int64(multiplier)), o.Amount)
 	if s, ok := o.Extra["minDeposit"].(string); ok {
 		if v, ok := new(big.Int).SetString(s, 10); ok && v.Sign() > 0 && v.Cmp(o.Amount) >= 0 && !strings.HasPrefix(s, "+") {
 			target = v

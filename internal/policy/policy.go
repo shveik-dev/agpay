@@ -30,7 +30,7 @@ type Rules struct {
 	Wallet     string      `json:"wallet,omitempty"`         // the EVM address this policy was written for
 	Extra      []chain.Net `json:"extra_networks,omitempty"` // networks added to the built-in ones; signed with the rest
 	Seq        int64       `json:"seq"`                      // grows with every signed change
-	MaxPayment string      `json:"max_payment_atomic"`       // per payment (a channel deposit counts in full)
+	MaxPayment string      `json:"max_payment_atomic"`       // per payment (a channel deposit has its own cap and still counts in the daily total)
 	MaxDay     string      `json:"max_per_day_atomic"`       // rolling 24 hours, all networks
 	MaxDeposit string      `json:"max_deposit_atomic"`       // one batch-settlement channel deposit
 	SendTo     []string    `json:"allow_send_to,omitempty"`  // addresses `send` may pay out to (empty = sending out is disabled)
@@ -347,11 +347,14 @@ func (l Ledger) Reserve(r Rules, e Entry, now time.Time) error {
 		return err
 	}
 	defer lk.Close()
-	if amount.Cmp(r.Big(r.MaxPayment)) > 0 {
+	// a channel deposit is capped by max_deposit (and the daily total), every other payment by
+	// max_payment: funding a channel is not one payment to the server
+	if e.Kind == "deposit" {
+		if amount.Cmp(r.Big(r.MaxDeposit)) > 0 {
+			return &LimitError{"max_deposit", r.MaxDeposit, e.Amount}
+		}
+	} else if amount.Cmp(r.Big(r.MaxPayment)) > 0 {
 		return &LimitError{"max_payment", r.MaxPayment, e.Amount}
-	}
-	if e.Kind == "deposit" && amount.Cmp(r.Big(r.MaxDeposit)) > 0 {
-		return &LimitError{"max_deposit", r.MaxDeposit, e.Amount}
 	}
 	m, _, prev, err := l.read()
 	if err != nil {

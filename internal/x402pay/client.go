@@ -59,15 +59,16 @@ type Client struct {
 }
 
 type Request struct {
-	Method    string
-	URL       string
-	Header    http.Header
-	Body      []byte
-	MaxAtomic *big.Int // per-call ceiling set by the caller, on top of the policy
-	Network   string   // preferred network (CAIP-2 or name)
-	Scheme    string   // exact | batch-settlement | "" (auto)
-	DryRun    bool
-	Key       string // idempotency key: a second call with the same key does not pay again
+	Method            string
+	URL               string
+	Header            http.Header
+	Body              []byte
+	MaxAtomic         *big.Int // per-call ceiling set by the caller, on top of the policy
+	Network           string   // preferred network (CAIP-2 or name)
+	Scheme            string   // exact | batch-settlement | "" (auto)
+	DryRun            bool
+	DepositMultiplier int    // batch-settlement: deposit this many times the per-request amount (3..; 0 = default 5)
+	Key               string // idempotency key: a second call with the same key does not pay again
 }
 
 type Verdict struct {
@@ -471,7 +472,7 @@ func (c *Client) payBatch(ctx context.Context, r Request, res *Result, req *Requ
 		var until int64
 		if balance.Sign() == 0 || next.Cmp(balance) > 0 {
 			needed := new(big.Int).Sub(next, balance)
-			depositAmt = DepositTarget(o, needed)
+			depositAmt = DepositTarget(o, needed, r.DepositMultiplier)
 			if max := c.Rules.Big(c.Rules.MaxDeposit); depositAmt.Cmp(max) > 0 {
 				if needed.Cmp(max) > 0 {
 					return res, errf("limit_exceeded", ExitPolicy, "ask the owner to raise max_deposit", "the channel needs a %s deposit, the policy allows %s", o.Net.Format(needed), o.Net.Format(max))

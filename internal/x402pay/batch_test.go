@@ -76,19 +76,22 @@ func TestDepositPayloadShape(t *testing.T) {
 
 func TestDepositTarget(t *testing.T) {
 	o := testOffer()
-	if DepositTarget(o, big.NewInt(1000)).String() != "5000" {
+	if DepositTarget(o, big.NewInt(1000), 0).String() != "5000" {
 		t.Fatal("multiplier")
 	}
 	o.Extra["minDeposit"] = "20000"
-	if DepositTarget(o, big.NewInt(1000)).String() != "20000" {
+	if DepositTarget(o, big.NewInt(1000), 0).String() != "20000" {
 		t.Fatal("hint")
 	}
 	o.Extra["minDeposit"] = "10" // below the request amount: ignored
-	if DepositTarget(o, big.NewInt(1000)).String() != "5000" {
+	if DepositTarget(o, big.NewInt(1000), 0).String() != "5000" {
 		t.Fatal("bad hint")
 	}
-	if DepositTarget(o, big.NewInt(9000)).String() != "9000" {
+	if DepositTarget(o, big.NewInt(9000), 0).String() != "9000" {
 		t.Fatal("needed")
+	}
+	if DepositTarget(o, big.NewInt(1000), 3).String() != "3000" || DepositTarget(o, big.NewInt(1000), 2).String() != "5000" {
+		t.Fatal("multiplier")
 	}
 }
 

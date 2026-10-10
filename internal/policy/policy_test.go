@@ -60,6 +60,10 @@ func TestLedgerLimits(t *testing.T) {
 	if err := l.Reserve(r, Entry{ID: "d", Amount: "5000001", Kind: "deposit"}, now.Add(48*time.Hour)); err == nil {
 		t.Fatal("deposit cap not enforced")
 	}
+	// a deposit above max_payment but within max_deposit is fine (it is not one payment)
+	if err := l.Reserve(r, Entry{ID: "d2", Amount: "3000000", Kind: "deposit"}, now.Add(72*time.Hour)); err != nil {
+		t.Fatal("a 3 USDC deposit was refused under the default policy:", err)
+	}
 }
 
 func TestHostMatching(t *testing.T) {
