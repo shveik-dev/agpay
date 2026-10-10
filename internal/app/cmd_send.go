@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	"github.com/shveik-dev/agpay/internal/chain"
@@ -24,13 +25,13 @@ func init() {
 			all := fs.Bool("all", false, "send the whole USDC balance on the network")
 			network := fs.String("network", "", "network (CAIP-2 id or name)")
 			dry := fs.Bool("dry-run", false, "check everything and show what would be sent")
-			native := fs.Bool("native", false, "sweep the network's gas token (ETH, POL, SOL) instead of USDC; needs --all")
+			native := fs.Bool("native", false, "send the network's gas token (ETH, POL, SOL) instead of USDC; --amount is then in whole tokens")
 			return func(c *ctx) (any, error) {
 				if *native {
-					if *to == "" || *network == "" || !*all || *amount != "" {
-						return nil, usage("bad_flags", "--native sweeps everything: give --to, --network and --all")
+					if *to == "" || *network == "" || (*amount == "") == !*all {
+						return nil, usage("bad_flags", "--native needs --to, --network and exactly one of --all or --amount (in gas-token units, e.g. 0.1)")
 					}
-					return sendNative(c, *to, *network, *dry)
+					return sendNative(c, *to, *network, *amount, *dry)
 				}
 				if *to == "" || *network == "" || (*amount == "") == !*all {
 					return nil, usage("bad_flags", "give --to, --network and exactly one of --amount or --all")
@@ -146,7 +147,7 @@ func solSend(ctx context.Context, n chain.Net, from sol.Address, key ed25519.Pri
 
 // sendNative sweeps the whole gas-token balance to an allowed address (the fee is taken from it).
 // It is for emptying a wallet, so it needs the destination allowlist like any other send.
-func sendNative(c *ctx, to, network string, dry bool) (any, error) {
+func sendNative(c *ctx, to, network, amount string, dry bool) (any, error) {
 	cl, v, err := c.client()
 	if err != nil {
 		return nil, err
@@ -176,7 +177,19 @@ func sendNative(c *ctx, to, network string, dry bool) (any, error) {
 			out["dry_run"] = true
 			return out, nil
 		}
-		tx, value, err := rpc.SendAll(cctx, v.Secrets.EVMPriv(), uint64(n.ChainID), dest)
+		var tx string
+		var value *big.Int
+		if amount != "" {
+			if value, err = parseUnits(amount, 18); err != nil {
+				return nil, usage("bad_flags", "--amount: %v", err)
+			}
+			if value.Cmp(bal) >= 0 {
+				return nil, &x402pay.Error{Code: "insufficient_funds", Message: "the balance does not cover that amount plus the fee", Exit: x402pay.ExitFunds}
+			}
+			tx, err = rpc.SendValue(cctx, v.Secrets.EVMPriv(), uint64(n.ChainID), dest, value)
+		} else {
+			tx, value, err = rpc.SendAll(cctx, v.Secrets.EVMPriv(), uint64(n.ChainID), dest)
+		}
 		if err != nil {
 			return nil, &x402pay.Error{Code: "send_failed", Message: err.Error(), Exit: x402pay.ExitPayment}
 		}
@@ -205,7 +218,18 @@ func sendNative(c *ctx, to, network string, dry bool) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	msg := sol.Message(v.Solana, []sol.Instruction{sol.SystemTransfer(v.Solana, dest, lamports-fee)}, bh)
+	send := lamports - fee
+	if amount != "" {
+		a, err := parseUnits(amount, 9)
+		if err != nil || !a.IsUint64() {
+			return nil, usage("bad_flags", "--amount: not a SOL amount")
+		}
+		if a.Uint64()+fee > lamports {
+			return nil, &x402pay.Error{Code: "insufficient_funds", Message: "the balance does not cover that amount plus the fee", Exit: x402pay.ExitFunds}
+		}
+		send = a.Uint64()
+	}
+	msg := sol.Message(v.Solana, []sol.Instruction{sol.SystemTransfer(v.Solana, dest, send)}, bh)
 	raw, err := sol.SignedPartial(msg, sol.AccountKeys(msg), v.Secrets.SolKey())
 	if err != nil {
 		return nil, err
@@ -214,6 +238,20 @@ func sendNative(c *ctx, to, network string, dry bool) (any, error) {
 	if err != nil {
 		return nil, &x402pay.Error{Code: "send_failed", Message: err.Error(), Exit: x402pay.ExitPayment}
 	}
-	out["amount_atomic"], out["transaction"] = fmt.Sprint(lamports-fee), tx
+	out["amount_atomic"], out["transaction"] = fmt.Sprint(send), tx
 	return out, nil
+}
+
+// parseUnits reads a decimal token amount ("0.1") into integer base units.
+func parseUnits(s string, decimals int) (*big.Int, error) {
+	whole, frac, _ := strings.Cut(strings.TrimSpace(s), ".")
+	if len(frac) > decimals || whole == "" && frac == "" || strings.ContainsAny(s, "-+eE ") {
+		return nil, fmt.Errorf("not an amount with at most %d decimals: %q", decimals, s)
+	}
+	frac += strings.Repeat("0", decimals-len(frac))
+	n, ok := new(big.Int).SetString(whole+frac, 10)
+	if !ok {
+		return nil, fmt.Errorf("not an amount: %q", s)
+	}
+	return n, nil
 }

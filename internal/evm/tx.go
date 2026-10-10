@@ -81,6 +81,11 @@ func (r *RPC) Send(ctx context.Context, priv []byte, chainID uint64, to Address,
 	return r.send(ctx, priv, chainID, to, nil, data, 0)
 }
 
+// SendValue sends an exact native amount (plain transfer, 21000 gas).
+func (r *RPC) SendValue(ctx context.Context, priv []byte, chainID uint64, to Address, value *big.Int) (string, error) {
+	return r.send(ctx, priv, chainID, to, value, nil, 21000)
+}
+
 // SendAll moves the whole native balance (minus the exact fee of a plain transfer) to an address.
 func (r *RPC) SendAll(ctx context.Context, priv []byte, chainID uint64, to Address) (string, *big.Int, error) {
 	from, err := AddressOf(priv)
