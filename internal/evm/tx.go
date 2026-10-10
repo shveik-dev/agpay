@@ -101,9 +101,9 @@ func (r *RPC) SendAll(ctx context.Context, priv []byte, chainID uint64, to Addre
 		return "", nil, err
 	}
 	price, _ := hexU(pres)
-	feeCap := price*2 + 1000
-	reserve := new(big.Int).Mul(big.NewInt(21000), new(big.Int).SetUint64(feeCap))
-	reserve.Add(reserve, big.NewInt(3_000_000_000)) // rollups (Base, OP) also charge an L1 data fee that the balance check includes
+	feeCap := price + price/4 + price/10 + 1000                                    // matches send(): price + 25% + a tip of at most price/10
+	reserve := new(big.Int).Mul(big.NewInt(24000), new(big.Int).SetUint64(feeCap)) // 21000 gas plus headroom for the price moving between the read and the send
+	reserve.Add(reserve, big.NewInt(3_000_000_000))                                // rollups (Base, OP) also charge an L1 data fee that the balance check includes
 	value := new(big.Int).Sub(bal, reserve)
 	if value.Sign() <= 0 {
 		return "", nil, errors.New("the native balance does not cover the network fee")
@@ -146,7 +146,13 @@ func (r *RPC) sendAt(ctx context.Context, priv []byte, chainID uint64, to Addres
 		}
 		price, _ = hexU(pres)
 	}
-	tx := Tx{ChainID: chainID, Nonce: nonce, TipCap: price / 10, FeeCap: price*2 + 1000, Gas: gas, To: to, Value: value, Data: data}
+	tip := price / 10
+	if tr, err := r.Call(ctx, "eth_maxPriorityFeePerGas"); err == nil {
+		if v, err := hexU(tr); err == nil && v > 0 && v < price {
+			tip = v // the network's own suggestion (some chains enforce a minimum tip)
+		}
+	}
+	tx := Tx{ChainID: chainID, Nonce: nonce, TipCap: tip, FeeCap: price + price/4 + tip, Gas: gas, To: to, Value: value, Data: data}
 	raw, err := tx.Sign(priv)
 	if err != nil {
 		return "", err
@@ -157,7 +163,7 @@ func (r *RPC) sendAt(ctx context.Context, priv []byte, chainID uint64, to Addres
 	}
 	var hash string
 	json.Unmarshal(hres, &hash)
-	for i := 0; i < 40; i++ {
+	for i := 0; i < 90; i++ {
 		time.Sleep(2 * time.Second)
 		rec, err := r.Call(ctx, "eth_getTransactionReceipt", hash)
 		if err != nil || string(rec) == "null" {
