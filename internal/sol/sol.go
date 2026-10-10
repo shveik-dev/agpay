@@ -341,15 +341,22 @@ func (r *RPC) Call(ctx context.Context, method string, params ...any) (json.RawM
 		b, _ := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 		resp.Body.Close()
 		var out struct {
-			Result json.RawMessage           `json:"result"`
-			Error  *struct{ Message string } `json:"error"`
+			Result json.RawMessage `json:"result"`
+			Error  *struct {
+				Message string
+				Data    json.RawMessage
+			} `json:"error"`
 		}
 		if json.Unmarshal(b, &out) != nil {
 			last = fmt.Errorf("rpc %s: HTTP %d, not JSON", u, resp.StatusCode)
 			continue
 		}
 		if out.Error != nil {
-			last = fmt.Errorf("rpc %s: %s", method, out.Error.Message)
+			d := string(out.Error.Data)
+			if len(d) > 400 {
+				d = d[:400]
+			}
+			last = fmt.Errorf("rpc %s: %s %s", method, out.Error.Message, d)
 			continue
 		}
 		return out.Result, nil
@@ -465,4 +472,12 @@ func (r *RPC) SendTx(ctx context.Context, raw []byte) (string, error) {
 		}
 	}
 	return sig, errors.New("not confirmed in time: " + sig)
+}
+
+// SystemTransfer builds a plain SOL transfer.
+func SystemTransfer(from, to Address, lamports uint64) Instruction {
+	d := make([]byte, 12)
+	binary.LittleEndian.PutUint32(d[:4], 2)
+	binary.LittleEndian.PutUint64(d[4:], lamports)
+	return Instruction{Program: SystemProgram, Accounts: []Meta{{from, true, true}, {to, false, true}}, Data: d}
 }
