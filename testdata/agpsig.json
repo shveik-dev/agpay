@@ -1,0 +1,6 @@
+{
+ "accept_digest": "6e0219ed29e8753691fcfdf03b10a9a8658120223fcae30a3a4e87f2adfac03d",
+ "accept_text": "AGP v1\nhost: agpay.shveik.dev\nnetwork: eip155:8453\ndeal: dl_0123456789abcdef0123456789abcdef\naction: accept\namount: 500000\nexpires: 1800000000",
+ "stmt_digest": "6decdf7f3ca36a11b767088e333b886a378c785898f4af65535a7361e53f72bc",
+ "stmt_text": "AGP v1\nhost: agpay.shveik.dev\nnetwork: eip155:8453\ndeal: dl_0123456789abcdef0123456789abcdef\naction: statement\namount: 500000\nexpires: 1800000000\ndata: aa11bb22cc33dd44ee55ff66aa11bb22cc33dd44ee55ff66aa11bb22cc33dd44"
+}

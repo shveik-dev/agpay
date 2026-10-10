@@ -250,3 +250,24 @@ func TestSolanaSignaturesAreEnveloped(t *testing.T) {
 		t.Fatal("raw message signature produced")
 	}
 }
+
+// The seller signature text must equal what the escrow server rebuilds (values from its agpsig package).
+func TestEscrowMessageMatchesServer(t *testing.T) {
+	var g map[string]string
+	b, err := os.ReadFile("../../testdata/agpsig.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	json.Unmarshal(b, &g)
+	deal := "dl_0123456789abcdef0123456789abcdef"
+	if got := agpMessage("agpay.shveik.dev", deal, "accept", "500000", 1800000000, ""); got != g["accept_text"] {
+		t.Fatalf("accept text\n got %q\nwant %q", got, g["accept_text"])
+	}
+	d := "aa11bb22cc33dd44ee55ff66aa11bb22cc33dd44ee55ff66aa11bb22cc33dd44"
+	if got := agpMessage("agpay.shveik.dev", deal, "statement", "500000", 1800000000, d); got != g["stmt_text"] {
+		t.Fatalf("statement text\n got %q\nwant %q", got, g["stmt_text"])
+	}
+	if hexOf(evmPersonal(g["accept_text"])) != g["accept_digest"] {
+		t.Fatal("digest differs")
+	}
+}

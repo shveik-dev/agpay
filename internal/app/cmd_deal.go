@@ -332,15 +332,14 @@ func sellerAction(c *ctx, cctx context.Context, origin, id, act, text string) (a
 	u, _ := url.Parse(origin)
 	host := u.Hostname()
 	expires := c.Env.now().Add(8 * time.Minute).Unix()
-	var sb strings.Builder
-	sb.WriteString("AGP v1\nhost: " + host + "\nnetwork: eip155:8453\ndeal: " + id + "\naction: " + act + "\namount: " + strconv.FormatInt(int64(amt), 10) + "\nexpires: " + strconv.FormatInt(expires, 10))
 	body := map[string]any{"address": v.EVM.Hex(), "expires": expires}
+	data := ""
 	if act == "statement" {
 		sum := sha256.Sum256([]byte(text))
-		sb.WriteString("\ndata: " + hex.EncodeToString(sum[:]))
+		data = hex.EncodeToString(sum[:])
 		body["text"] = text
 	}
-	sig, err := evm.SignEth(v.Secrets.EVMPriv(), evm.PersonalHash([]byte(sb.String())))
+	sig, err := evm.SignEth(v.Secrets.EVMPriv(), evm.PersonalHash([]byte(agpMessage(host, id, act, strconv.FormatInt(int64(amt), 10), expires, data))))
 	if err != nil {
 		return nil, err
 	}
@@ -350,4 +349,14 @@ func sellerAction(c *ctx, cctx context.Context, origin, id, act, text string) (a
 		return nil, err
 	}
 	return apiResult(st, b)
+}
+
+// agpMessage is the exact text the escrow rebuilds and verifies (docs/agpay-spec.md section 3):
+// host, network, deal, action, amount and expiry, plus a data line for statements.
+func agpMessage(host, deal, action, amount string, expires int64, data string) string {
+	m := "AGP v1\nhost: " + host + "\nnetwork: eip155:8453\ndeal: " + deal + "\naction: " + action + "\namount: " + amount + "\nexpires: " + strconv.FormatInt(expires, 10)
+	if data != "" {
+		m += "\ndata: " + data
+	}
+	return m
 }
