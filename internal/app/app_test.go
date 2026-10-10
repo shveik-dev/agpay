@@ -271,3 +271,33 @@ func TestEscrowMessageMatchesServer(t *testing.T) {
 		t.Fatal("digest differs")
 	}
 }
+
+func TestMCPServer(t *testing.T) {
+	home, env := newWallet(t, false)
+	in := strings.Join([]string{
+		`{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}`,
+		`{"jsonrpc":"2.0","method":"notifications/initialized"}`,
+		`{"jsonrpc":"2.0","id":2,"method":"tools/list"}`,
+		`{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"wallet_address","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"pay","arguments":{}}}`,
+		`{"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"pay","arguments":{"url":"http://example.com/x"}}}`,
+	}, "\n") + "\n"
+	var so bytes.Buffer
+	Run(&Env{Args: []string{"mcp"}, Home: home, Stdin: strings.NewReader(in), Stdout: &so, Stderr: &bytes.Buffer{}, Getenv: func(k string) string { return env[k] }})
+	lines := strings.Split(strings.TrimSpace(so.String()), "\n")
+	if len(lines) < 6 {
+		t.Fatalf("expected 5 replies, got %d: %s", len(lines), so.String())
+	}
+	if !strings.Contains(lines[0], `"protocolVersion":"2024-11-05"`) || !strings.Contains(lines[1], `"name":"pay"`) {
+		t.Fatal(lines[:2])
+	}
+	if !strings.Contains(lines[2], `\"evm\":\"0x`) || !strings.Contains(lines[2], `"isError":false`) {
+		t.Fatal(lines[2])
+	}
+	if !strings.Contains(lines[3], `-32602`) {
+		t.Fatal("missing argument not rejected:", lines[3])
+	}
+	if !strings.Contains(lines[4], `"isError":true`) || !strings.Contains(lines[4], `insecure_url`) {
+		t.Fatal("policy refusal not surfaced:", lines[4])
+	}
+}

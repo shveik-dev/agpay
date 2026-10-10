@@ -24,7 +24,7 @@ Move the admin passphrase file off the agent's machine. The agent only ever need
 | Spec | Status |
 |---|---|
 | x402 v2 transport (`PAYMENT-REQUIRED` / `PAYMENT-SIGNATURE` / `PAYMENT-RESPONSE`) | yes; v1 (`X-PAYMENT`, body 402) too |
-| `exact`, EVM, EIP-3009 `transferWithAuthorization` | yes, paid live on Base |
+| `exact`, EVM, EIP-3009 `transferWithAuthorization` | yes, paid live on Base and Polygon (Arbitrum, Optimism, Ethereum use the same code; no server to pay there) |
 | `exact`, Solana (`TransferChecked` + memo, Token and Token-2022) | yes, paid live on Solana mainnet |
 | `batch-settlement`, EVM (deposit with ERC-3009 `receiveWithAuthorization`, cumulative vouchers, corrective 402 recovery, cooperative refund) | yes; see below |
 | `batch-settlement`, Solana (payment-channels program) | not yet: the offer is refused with a reason |
@@ -40,7 +40,7 @@ How the EVM batch flow was checked against the spec, not only against itself:
 ## Commands
 
 `init` `address` `balance` `networks` `quote` `pay` (`fetch`) `channels` `history` `policy` `sign-message` `deal`
-`export` `rotate-passphrase` `doctor` `describe`. Run `agpay describe` for flags and examples.
+`export` `rotate-passphrase` `doctor` `describe` `mcp` (an MCP server on stdio: wallet_address, wallet_balance, quote, pay, payment_history, spending_policy). Run `agpay describe` for flags and examples.
 
 - Output: `{"ok":true,"command":...,"result":...}` or `{"ok":false,"error":{"code","message","hint","retryable","exit_code"}}`. `--pretty` indents.
 - Exit codes: `0` ok, `1` unexpected, `2` usage, `3` refused by policy, `4` payment failed or rejected, `5` insufficient funds, `6` wallet or passphrase problem, `7` network error.
