@@ -17,7 +17,7 @@ func init() {
 					f := flag.NewFlagSet(cm.Name, flag.ContinueOnError)
 					f.SetOutput(io.Discard)
 					cm.Build(f)
-					var flags []map[string]any
+					flags := []map[string]any{}
 					f.VisitAll(func(fl *flag.Flag) {
 						kind := "string"
 						if bf, ok := fl.Value.(interface{ IsBoolFlag() bool }); ok && bf.IsBoolFlag() {
