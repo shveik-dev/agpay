@@ -30,6 +30,11 @@ Move the admin passphrase file off the agent's machine. The agent only ever need
 | `batch-settlement`, Solana (payment-channels program) | not yet: the offer is refused with a reason |
 | `exact` with Permit2 / ERC-7710 | not needed: only each network's own USDC is paid, and USDC supports EIP-3009 |
 
+The EVM batch flow also ran for real on Base mainnet (`AGPAY_LIVE_KEY=<funded key> go test ./internal/x402pay -run Live -v`):
+the wallet signed and sent a deposit through the canonical contract, signed a voucher that the contract accepted in a real
+`claim`, then took a cooperative `refund`; the channel ended with exactly the claimed amount. (No third-party batch server exists
+yet, so the test plays both sides; the HTTP flow around it is covered by mock-server tests.)
+
 How the EVM batch flow was checked against the spec, not only against itself:
 - channel id, voucher and `ReceiveWithAuthorization` digests equal go-ethereum's EIP-712 output;
 - the EIP-3009 digest, secp256k1 signatures, Solana ATAs and v0 messages equal the agdata server's own code, byte for byte;

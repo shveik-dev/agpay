@@ -351,3 +351,35 @@ func rightPad(b []byte) []byte {
 	}
 	return out
 }
+
+func cfgWords(cfg ChannelConfig) []byte {
+	var out []byte
+	for _, a := range []evm.Address{cfg.Payer, cfg.PayerAuthorizer, cfg.Receiver, cfg.ReceiverAuthorizer, cfg.Token} {
+		out = append(out, pad(a[:])...)
+	}
+	out = append(out, pad(big.NewInt(cfg.WithdrawDelay).Bytes())...)
+	return append(out, cfg.Salt[:]...)
+}
+
+// ClaimCalldata encodes x402BatchSettlement.claim([{voucher:{channel,maxClaimableAmount}, signature,
+// totalClaimed}]) for one voucher. The receiver (or receiverAuthorizer) calls it to redeem the latest voucher.
+func ClaimCalldata(cfg ChannelConfig, max *big.Int, sig []byte, totalClaimed *big.Int) []byte {
+	out := evm.Keccak([]byte("claim((((address,address,address,address,address,uint40,bytes32),uint128),bytes,uint128)[])"))[:4]
+	out = append(out, pad(big.NewInt(32).Bytes())...) // offset of the array
+	out = append(out, pad(big.NewInt(1).Bytes())...)  // length
+	out = append(out, pad(big.NewInt(32).Bytes())...) // offset of element 0, from the start of the array body
+	// element: voucher tuple (static: config 7 words + max), offset to the signature, totalClaimed
+	el := append(cfgWords(cfg), pad(max.Bytes())...)
+	el = append(el, pad(big.NewInt(320).Bytes())...)
+	el = append(el, pad(totalClaimed.Bytes())...)
+	el = append(el, pad(big.NewInt(int64(len(sig))).Bytes())...)
+	el = append(el, rightPad(sig)...)
+	return append(out, el...)
+}
+
+// RefundCalldata encodes refund(config, amount): the receiver returns unclaimed escrow to the payer.
+func RefundCalldata(cfg ChannelConfig, amount *big.Int) []byte {
+	out := evm.Keccak([]byte("refund((address,address,address,address,address,uint40,bytes32),uint128)"))[:4]
+	out = append(out, cfgWords(cfg)...)
+	return append(out, pad(amount.Bytes())...)
+}
