@@ -301,3 +301,11 @@ func TestMCPServer(t *testing.T) {
 		t.Fatal("policy refusal not surfaced:", lines[4])
 	}
 }
+
+func TestSendNeedsAllowedDestination(t *testing.T) {
+	home, env := newWallet(t, false)
+	c, o, _ := run(t, home, env, "send", "--to", "0x1111111111111111111111111111111111111111", "--amount", "0.1", "--network", "base")
+	if c != 3 || o.Error.Code != "destination_not_allowed" {
+		t.Fatal("send to an unlisted address:", c, o)
+	}
+}

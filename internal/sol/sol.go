@@ -426,3 +426,43 @@ func (r *RPC) Lamports(ctx context.Context, a Address) (uint64, error) {
 }
 
 func B64(b []byte) string { return base64.StdEncoding.EncodeToString(b) }
+
+// CreateATAIdempotent builds the associated token account program's CreateIdempotent instruction
+// (discriminator 1): creates the owner's token account if missing, does nothing if it exists.
+func CreateATAIdempotent(funder, ata, owner, mint, tokenProgram Address) Instruction {
+	return Instruction{Program: AssociatedTokenProgram, Data: []byte{1}, Accounts: []Meta{
+		{funder, true, true}, {ata, false, true}, {owner, false, false}, {mint, false, false}, {SystemProgram, false, false}, {tokenProgram, false, false}}}
+}
+
+// SendTx broadcasts a signed transaction and waits for it to be confirmed.
+func (r *RPC) SendTx(ctx context.Context, raw []byte) (string, error) {
+	res, err := r.Call(ctx, "sendTransaction", B64(raw), map[string]any{"encoding": "base64", "preflightCommitment": "confirmed"})
+	if err != nil {
+		return "", err
+	}
+	var sig string
+	json.Unmarshal(res, &sig)
+	for i := 0; i < 45; i++ {
+		time.Sleep(2 * time.Second)
+		st, err := r.Call(ctx, "getSignatureStatuses", []string{sig})
+		if err != nil {
+			continue
+		}
+		var v struct {
+			Value []*struct {
+				Err                any
+				ConfirmationStatus string `json:"confirmationStatus"`
+			}
+		}
+		json.Unmarshal(st, &v)
+		if len(v.Value) == 1 && v.Value[0] != nil {
+			if v.Value[0].Err != nil {
+				return sig, fmt.Errorf("transaction failed on chain: %v", v.Value[0].Err)
+			}
+			if s := v.Value[0].ConfirmationStatus; s == "confirmed" || s == "finalized" {
+				return sig, nil
+			}
+		}
+	}
+	return sig, errors.New("not confirmed in time: " + sig)
+}

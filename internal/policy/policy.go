@@ -33,6 +33,7 @@ type Rules struct {
 	MaxPayment string      `json:"max_payment_atomic"`       // per payment (a channel deposit counts in full)
 	MaxDay     string      `json:"max_per_day_atomic"`       // rolling 24 hours, all networks
 	MaxDeposit string      `json:"max_deposit_atomic"`       // one batch-settlement channel deposit
+	SendTo     []string    `json:"allow_send_to,omitempty"`  // addresses `send` may pay out to (empty = sending out is disabled)
 	Hosts      []string    `json:"hosts,omitempty"`          // allowed API hosts (empty = any)
 	Networks   []string    `json:"networks,omitempty"`       // allowed CAIP-2 networks (empty = any known)
 	Schemes    []string    `json:"schemes,omitempty"`        // exact, batch-settlement (empty = both)
@@ -156,6 +157,15 @@ func (r Rules) HostOK(host string) bool {
 	for _, h := range r.Hosts {
 		h = strings.ToLower(h)
 		if host == h || (strings.HasPrefix(h, "*.") && strings.HasSuffix(host, h[1:])) {
+			return true
+		}
+	}
+	return false
+}
+
+func (r Rules) SendOK(addr string) bool {
+	for _, a := range r.SendTo {
+		if strings.EqualFold(a, addr) {
 			return true
 		}
 	}

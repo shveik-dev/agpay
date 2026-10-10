@@ -317,6 +317,7 @@ func init() {
 			networks := fs.String("networks", "", "comma-separated allowed CAIP-2 networks; \"any\" clears the list")
 			schemes := fs.String("schemes", "", "comma-separated schemes (exact, batch-settlement)")
 			allowHTTP := fs.String("allow-http", "", "true or false: permit plain http to non-loopback hosts")
+			sendTo := fs.String("send-to", "", "comma-separated addresses `send` may pay out to; \"none\" clears the list")
 			addNets := fs.String("add-network-file", "", "add the networks in this JSON file (array of {caip,kind,usdc,rpc[,name,v1,chain_id,decimals]}) to the registry")
 			clearNets := fs.Bool("clear-networks", false, "remove all owner-added networks")
 			return func(c *ctx) (any, error) {
@@ -376,6 +377,9 @@ func init() {
 				}
 				if *schemes != "" {
 					rules.Schemes = list(*schemes)
+				}
+				if *sendTo != "" {
+					rules.SendTo = list(strings.Replace(*sendTo, "none", "any", 1))
 				}
 				if *allowHTTP != "" {
 					rules.AllowHTTP = *allowHTTP == "true"
