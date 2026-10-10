@@ -126,7 +126,7 @@ func init() {
 				if err != nil {
 					return nil, err
 				}
-				return map[string]any{"networks": reg.All(), "extend": "add entries to " + c.path("networks.json") + " (caip, kind, usdc, rpc)"}, nil
+				return map[string]any{"networks": reg.All(), "extend": "agpay policy set --add-network-file FILE (a JSON array of {caip, kind, usdc, rpc}); needs the admin passphrase"}, nil
 			}
 		}})
 
@@ -303,7 +303,7 @@ func init() {
 							_, e = (&sol.RPC{URLs: n.RPC}).Blockhash(ctx)
 						}
 						cancel()
-						add("rpc "+n.CAIP, e == nil, errText(e), "add a working endpoint for it to networks.json")
+						add("rpc "+n.CAIP, e == nil, errText(e), "replace the network entry with one that has a working rpc endpoint: agpay policy set --clear-networks --add-network-file FILE")
 					}
 				}
 				if info, err := os.Stat(c.path("wallet.json")); err == nil {

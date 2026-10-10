@@ -107,8 +107,8 @@ func (c *ctx) readSecret(file, fileEnv, valEnv string) (string, error) {
 		return read(p)
 	}
 	v := c.Env.env(valEnv)
-	if v != "" && c.Env.Getenv == nil {
-		os.Unsetenv(valEnv) // keep it out of children and later reads of the environment
+	if v != "" && c.Env.Getenv == nil && c.Cmd.Name != "mcp" {
+		os.Unsetenv(valEnv) // keep it out of children and later reads (the long-running mcp server keeps it)
 	}
 	return v, nil
 }
