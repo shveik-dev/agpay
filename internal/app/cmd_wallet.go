@@ -223,7 +223,8 @@ func init() {
 					return nil, err
 				}
 				return map[string]any{"seed_hex": v.Secrets.Seed, "evm_key_hex": v.Secrets.EVMKey, "solana_seed_hex": v.Secrets.SolSeed,
-					"warning": "anyone holding this controls the funds; never paste it into a prompt or a log"}, nil
+					"solana_keypair_base58": sol.B58Encode(v.Secrets.SolKey()),
+					"warning":               "anyone holding this controls the funds; never paste it into a prompt or a log"}, nil
 			}
 		}})
 
