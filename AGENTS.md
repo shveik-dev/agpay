@@ -10,3 +10,4 @@ Go wallet CLI for AI agents: `cmd/agpay` and `internal/{secp,evm,sol,chain,vault
 - Live tests (`AGPAY_ONCHAIN_TEST_KEY`, `AGPAY_LIVE_KEY`) use a funded test wallet and small amounts; pass the key to the container as an environment variable, never on a command line, and never print it.
 - Never run `agpay export` in an automated session: it prints private keys.
 - Public repo: never commit secret-store names, sensitive environment variable names, owner wallet addresses, internal hostnames or work emails, even without values. Check the whole history before any push.
+- Live test history and what each run taught us: `docs/live-tests.md`.
